@@ -1,0 +1,5 @@
+<view>
+	<van-button type="primary">按钮</van-button>
+  <div class="text_box">hello,world</div>
+</view>
+
