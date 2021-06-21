@@ -1,4 +1,4 @@
-const getHomeData = require('../../apis/home')
+import { getHomeData } from '../../apis/home'
 
 Page({
   data: {

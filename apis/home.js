@@ -1,13 +1,9 @@
-const request = require('../utils/request')
+import flyio from '../utils/request'
 
-function getHomeData(data) {
-  return request({
-    url: '/users/register',
+export function getHomeData(data) {
+  return flyio.request({
+    url: 'http://www.baidu.com/users/register',
     method: 'post',
     data: data
   })
-}
-
-module.exports = {
-  getHomeData
 }

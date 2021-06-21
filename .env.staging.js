@@ -1,5 +1,1 @@
-const BASE_URL = 'staging'
-
-module.exports = {
-  BASE_URL
-}
+export const BASE_URL = 'staging'
