@@ -6,5 +6,9 @@ Page({
   onLoad: function () {
     getHomeData({})
   },
-
+  goHomePage: function () {
+    wx.switchTab({
+      url: '/pages/index/index'
+    })
+  },
 })

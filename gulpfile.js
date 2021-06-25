@@ -11,6 +11,9 @@ const gulpFilter = require('gulp-filter')
 const dependents = require('gulp-dependents')
 const cssnano = require('gulp-cssnano')
 const del = require('del')
+const cached = require('gulp-cached')
+const debug = require('gulp-debug')
+const copy = require('@cloudcmd/copy-file')
 
 const excludeList = ['!node_modules/**', '!./dist/**']
 const srcFile = {
@@ -32,8 +35,21 @@ const isPrd = process.env.NODE_ENV === 'production'
 /* 由于less里有@import选项，当index已经import所有其他less文件时，打包之后只需要复制index.less即可 */
 const filterLessList = ['./*.less', './pages/**', './templates/**', './components/**', './styles/index.less']
 
+function registerWatch(watcher, cb) {
+  watcher.on('unlink', file => {
+    del.sync(destPath + '/' + file.replace(/\\/g, '/'))
+    console.log('removed file: ' + file)
+  })
+  watcher.on('add', file => {
+    copy(file, destPath + '/' + file.replace(/\\/g, '/'))
+    console.log('added file: ' + file)
+  })
+  watcher.on('change', () => {
+    typeof cb === 'function' && cb()
+  })
+}
 
-function copyEnv() {
+gulp.task('copyEnv', done => {
   var envFile = '.env.development'
   if (process.env.NODE_ENV === 'development') {
     envFile = '.env.development.js'
@@ -43,7 +59,9 @@ function copyEnv() {
     envFile = '.env.production.js'
   }
   return gulp
-    .src(envFile, { since: gulp.lastRun(copyEnv) })
+    .src(envFile)
+    .pipe(cached('caching'))
+    .pipe(debug({ title: 'cached' }))
     .pipe(plumber())
     .pipe(rename((path) => {
       path.basename = '.env'
@@ -52,11 +70,17 @@ function copyEnv() {
     .pipe(gulp.dest(destPath)).on('error', (err) => {
       console.log('output error: ', err)
     })
-}
+    .on('end', () => {
+      done()
+    })
+})
 
-function compileLess() {
+
+gulp.task('compileLess', done => {
   return gulp
-    .src(srcFile.less, { since: gulp.lastRun(compileLess) })
+    .src(srcFile.less)
+    .pipe(cached('caching'))
+    .pipe(debug({ title: 'cached' }))
     .pipe(plumber())
     .pipe(dependents())
     .pipe(gulpFilter(filterLessList))
@@ -71,74 +95,94 @@ function compileLess() {
     .pipe(gulp.dest(destPath)).on('error', (err) => {
       console.log('output error: ', err)
     })
-}
+    .on('end', () => {
+      done()
+    })
+})
 
-function copyWXML() {
+gulp.task('copyWXML', done => {
   return gulp
-    .src(srcFile.wxml, { since: gulp.lastRun(copyWXML) })
+    .src(srcFile.wxml)
+    .pipe(cached('caching'))
+    .pipe(debug({ title: 'cached' }))
     .pipe(plumber())
     .pipe(gulpif(isPrd, htmlMinify()))
     .pipe(gulp.dest(destPath)).on('error', (err) => {
       console.log('output error: ', err)
     })
-}
+    .on('end', () => {
+      done()
+    })
+})
 
-function copyJSON() {
+gulp.task('copyJSON', done => {
   return gulp
-    .src(srcFile.json, { since: gulp.lastRun(copyJSON) })
+    .src(srcFile.json)
+    .pipe(cached('caching'))
+    .pipe(debug({ title: 'cached' }))
     .pipe(plumber())
     .pipe(gulpif(isPrd, jsonmin()))
     .pipe(gulp.dest(destPath)).on('error', (err) => {
       console.log('output error: ', err)
     })
-}
+    .on('end', () => {
+      done()
+    })
+})
 
-function copyImage() {
+gulp.task('copyImage', done => {
   return gulp
-    .src(srcFile.image, { since: gulp.lastRun(copyImage) })
+    .src(srcFile.image)
+    .pipe(cached('caching'))
+    .pipe(debug({ title: 'cached' }))
     .pipe(plumber())
     .pipe(gulp.dest(destPath)).on('error', (err) => {
       console.log('output error: ', err)
     })
-}
+    .on('end', () => {
+      done()
+    })
+})
 
-function copyJS() {
+gulp.task('copyJS', done => {
   return gulp
-    .src(srcFile.js, { since: gulp.lastRun(copyJS) })
+    .src(srcFile.js)
+    .pipe(cached('caching'))
+    .pipe(debug({ title: 'cached' }))
     .pipe(plumber())
     .pipe(eslint())
-    .pipe(eslint.formatEach('compact', process.stderr))
-    .pipe(eslint.failOnError())
+    .pipe(eslint.result(result => {
+      console.log(`esLint: ${result.filePath} - errors: (${result.errorCount})`)
+    }))
     .pipe(gulp.dest(destPath)).on('error', (err) => {
       console.log('output error: ', err)
     })
-}
+    .on('end', () => {
+      done()
+    })
+})
 
-function runInstall() {
+gulp.task('runInstall', done => {
   if (process.argv[process.argv.length - 1] === '-i') {
     return gulp
-      .src(srcFile.nodeModules, { since: gulp.lastRun(runInstall) })
+      .src(srcFile.nodeModules)
+      .pipe(cached('caching'))
+      .pipe(debug({ title: 'cached' }))
       .pipe(plumber())
       .pipe(gulp.dest(destPath)).on('error', (err) => {
         console.log('output error: ', err)
       })
       .on('end', () => {
+        console.log('install starting')
         exec('cd dist && npm install && cd ..', () => {
-          console.log('run npm install ened')
+          console.log('install ened')
+          done()
         })
       })
   } else {
-    return gulp.src(srcFile.nodeModules)
+    done()
   }
-}
-
-gulp.task(copyEnv)
-gulp.task(compileLess)
-gulp.task(copyImage)
-gulp.task(copyJS)
-gulp.task(copyWXML)
-gulp.task(copyJSON)
-gulp.task(runInstall)
+})
 
 gulp.task('clean', done => {
   del.sync(destPath)
@@ -146,12 +190,26 @@ gulp.task('clean', done => {
 })
 
 gulp.task('watch', () => {
-  gulp.watch(srcFile.less, gulp.series('compileLess'))
-  gulp.watch(srcFile.image, gulp.series('copyImage'))
-  gulp.watch(srcFile.js, gulp.series('copyJS'))
-  gulp.watch(srcFile.wxml, gulp.series('copyWXML'))
-  gulp.watch(srcFile.json, gulp.series('copyJSON'))
-  gulp.watch(srcFile.nodeModules, gulp.series('runInstall'))
+  const watchList = [
+    {
+      stream: gulp.watch(srcFile.less), cb: gulp.series('compileLess')
+    },
+    {
+      stream: gulp.watch(srcFile.image), cb: gulp.series('copyImage')
+    },
+    {
+      stream: gulp.watch(srcFile.js), cb: gulp.series('copyJS')
+    },
+    {
+      stream: gulp.watch(srcFile.wxml), cb: gulp.series('copyWXML')
+    },
+    {
+      stream: gulp.watch(srcFile.json), cb: gulp.series('copyJSON')
+    }
+  ]
+  watchList.forEach(item => {
+    registerWatch(item.stream, item.cb)
+  })
 })
 
 gulp.task('default', gulp.series('compileLess', 'copyEnv', 'copyJS', 'copyImage', 'copyWXML', 'copyJSON', 'runInstall', 'watch'))

@@ -1,5 +1,4 @@
 <view>
-	<van-button type="primary">按钮</van-button>
-  <div class="text_box">hello,world</div>
+<van-button type="primary" block>WELCOME TO GITHUB</van-button>
 </view>
 

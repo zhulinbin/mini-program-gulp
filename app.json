@@ -1,7 +1,35 @@
 {
   "pages": [
-    "pages/index/index"
+    "pages/index/index",
+    "pages/cart/index",
+    "pages/my/index"
   ],
+  "tabBar": {
+    "color": "#6e6d6b",
+    "selectedColor": "#e64340",
+    "borderStyle": "white",
+    "backgroundColor": "#fff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "iconPath": "assets/home.png",
+        "selectedIconPath": "assets/home-checked.png",
+        "text": "Home"
+      },
+      {
+        "pagePath": "pages/cart/index",
+        "iconPath": "assets/cart.png",
+        "selectedIconPath": "assets/cart-checked.png",
+        "text": "Cart"
+      },
+      {
+        "pagePath": "pages/my/index",
+        "iconPath": "assets/my.png",
+        "selectedIconPath": "assets/my-checked.png",
+        "text": "My"
+      }
+    ]
+  },
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#fff",

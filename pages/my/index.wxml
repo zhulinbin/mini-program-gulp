@@ -1,0 +1,1 @@
+<van-button type="primary" block bind:click="goHomePage">GO HOME PAGE</van-button>
